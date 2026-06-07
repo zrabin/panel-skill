@@ -1,0 +1,14 @@
+{
+  "name": "panel-skill",
+  "version": "0.1.0",
+  "description": "Diversity-enforced adversarial multi-lens expert panel skill for Claude Code (Review + Council modes).",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "build": "node build-panel.js"
+  },
+  "type": "commonjs"
+}

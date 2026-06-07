@@ -1,0 +1,20 @@
+{
+  "coding-artifact.md": [
+    "no error handling on the network call",
+    "unbounded retry loop"
+  ],
+  "product-spec.md": [
+    "missing success metric",
+    "no failure-mode acceptance criterion"
+  ],
+  "large-spec.md": [
+    "rate limit on the export endpoint",
+    "encryption at rest for the export bundle",
+    "conflicting retention period 30 versus 90 days",
+    "missing success metric",
+    "pagination for large exports",
+    "email delivery failure retry fallback",
+    "untestable acceptance criteria fast",
+    "audit log of who exported"
+  ]
+}

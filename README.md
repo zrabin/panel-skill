@@ -168,8 +168,8 @@ ln -sfn "$PWD/commands/panel.md" ~/.claude/commands/panel.md
 ```bash
 git clone https://github.com/zrabin/panel-skill.git ~/Documents/github/panel
 cd ~/Documents/github/panel
-mkdir -p ~/.codex/skills
-ln -sfn "$PWD" ~/.codex/skills/panel
+mkdir -p ~/.agents/skills
+ln -sfn "$PWD" ~/.agents/skills/panel
 ```
 
 Restart Codex after installing so it discovers the new skill.

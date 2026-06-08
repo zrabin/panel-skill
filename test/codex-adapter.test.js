@@ -29,7 +29,7 @@ test('Codex adapter documents native orchestration and avoids Claude Workflow in
 
 test('README includes Codex installation and optional multi-agent setup', () => {
   const readme = readRepoFile('README.md')
-  assert.match(readme, /~\/\.codex\/skills\/panel/)
+  assert.match(readme, /~\/\.agents\/skills\/panel/)
   assert.match(readme, /\[features\]\s*\nmulti_agent = true/)
   assert.match(readme, /restart Codex/i)
 })

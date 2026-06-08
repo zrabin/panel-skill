@@ -41,10 +41,10 @@ Before fanning content out to subagents, screen the resolved target:
 
 If this repository is available locally, use the shared preflight helper for the
 same heuristics as Claude. Resolve `PANEL_SKILL_ROOT` to the skill checkout,
-usually `~/.codex/skills/panel`:
+usually `~/.agents/skills/panel`:
 
 ```bash
-PANEL_SKILL_ROOT="${PANEL_SKILL_ROOT:-$HOME/.codex/skills/panel}"
+PANEL_SKILL_ROOT="${PANEL_SKILL_ROOT:-$HOME/.agents/skills/panel}"
 node "$PANEL_SKILL_ROOT/panel-preflight.js" '{"content":"artifact text","title":"spec.md"}'
 ```
 

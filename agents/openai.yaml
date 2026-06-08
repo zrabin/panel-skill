@@ -1,0 +1,7 @@
+interface:
+  display_name: "Panel Review"
+  short_description: "Run adversarial multi-lens reviews"
+  default_prompt: "Use $panel to review this plan with a concise expert panel."
+
+policy:
+  allow_implicit_invocation: true

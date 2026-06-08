@@ -1,0 +1,33 @@
+---
+description: Run the panel skill on an artifact or scoped question
+globs:
+alwaysApply: false
+---
+
+# Panel Review Adapter
+
+Use this rule when the user asks to convene a panel, run a panel review, get
+expert eyes, pressure-test a doc/plan/spec/decision, or get red-team feedback.
+
+If the panel skill checkout is available, read `references/cursor.md` there for
+the complete Cursor workflow. Use `panel-preflight.js` from the same checkout
+when available so mode detection, decline routing, PII screening, and cost gates
+match the Claude Code and Codex adapters.
+
+Cursor orchestration summary:
+
+1. Resolve mode: artifact or document-like text means Review; scoped open
+   question means Council; `review:` and `council:` override; `thorough` opts
+   into the deeper run.
+2. Apply decline, PII, and cost gates before running any lens.
+3. Select 3-5 genuinely distinct lenses from `skeptic`, `enduser`, `rigor`,
+   `feasibility`, `simplicity`, `risk`, `completeness`, and `strategic`; add at
+   most 1-2 ad-hoc niche lenses when needed.
+4. Run each lens independently and keep outputs separated. Cursor should use a
+   serial pass unless the active environment provides an explicit parallel-agent
+   mechanism.
+5. Batch pressure-test findings. Do not verify one agent per finding.
+6. Synthesize a ranked, edit-ready Review report or a Council recommendation
+   with tradeoffs and dissent.
+
+The panel is a critic and decider, not a blank-page generator.

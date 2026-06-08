@@ -1,6 +1,6 @@
 # panel
 
-A reusable [Claude Code](https://docs.claude.com/en/docs/claude-code) **skill** that runs a
+A reusable agent **skill** for Claude Code, Codex, and Cursor that runs a
 diversity-enforced, adversarial, multi-lens **expert panel** over a document (Review mode) or
 an open question (Council mode), then synthesizes ranked, edit-ready feedback.
 
@@ -136,13 +136,25 @@ decide.
 
 ## Prerequisites
 
-- **Claude Code** with the `Workflow` tool available (required — the harness runs inside the Workflow sandbox).
+- **Claude Code:** requires the `Workflow` tool. The `/panel` command runs inside
+  the Workflow sandbox.
+- **Codex:** install as a native Codex skill. Optional multi-agent support lets
+  Codex run the independent lens pass in parallel; without it, the adapter uses
+  the serial fallback in [`references/codex.md`](references/codex.md).
+- **Cursor:** install as a Cursor Project Rule in `.cursor/rules/panel.mdc`.
+  Cursor uses the serial adapter in [`references/cursor.md`](references/cursor.md)
+  unless the active environment provides an explicit parallel-agent mechanism.
 - **Node ≥18** — only needed to run the test suite (`node --test`) and regenerate the harness (`node build-panel.js`). The skill itself has no Node runtime dependency at run time.
-- **Optional auto-trigger hook** additionally requires: `jq` (or `python3` as a fallback for JSON encoding), `shasum`, and `stat` (BSD/macOS or GNU/Linux). On a system missing these the hook will fail silently once enabled — see [`hooks/README.md`](hooks/README.md).
+- **Optional Claude Code auto-trigger hook** additionally requires: `jq` (or
+  `python3` as a fallback for JSON encoding), `shasum`, and `stat` (BSD/macOS or
+  GNU/Linux). On a system missing these the hook will fail silently once enabled
+  — see [`hooks/README.md`](hooks/README.md).
 
 ---
 
 ## Installation
+
+### Claude Code
 
 ```bash
 git clone https://github.com/zrabin/panel-skill.git ~/Documents/github/panel
@@ -151,13 +163,55 @@ ln -sfn "$PWD" ~/.claude/skills/panel
 ln -sfn "$PWD/commands/panel.md" ~/.claude/commands/panel.md
 ```
 
-Requires Node ≥18 (for `node:test` / `node:vm`, used only by the test suite). The skill itself
-runs inside Claude Code's `Workflow` tool — no install-time build needed, but if you edit
-`lib.js` or `panel.template.js`, regenerate the harness:
+### Codex
+
+```bash
+git clone https://github.com/zrabin/panel-skill.git ~/Documents/github/panel
+cd ~/Documents/github/panel
+mkdir -p ~/.codex/skills
+ln -sfn "$PWD" ~/.codex/skills/panel
+```
+
+Restart Codex after installing so it discovers the new skill.
+
+For parallel lens reviews, enable Codex multi-agent support in
+`~/.codex/config.toml`:
+
+```toml
+[features]
+multi_agent = true
+```
+
+Without multi-agent support, Codex still runs the skill through the serial
+fallback documented in [`references/codex.md`](references/codex.md).
+
+### Cursor
+
+Cursor project rules are installed per project. From the Cursor project root:
+
+```bash
+PANEL_SKILL_ROOT="${PANEL_SKILL_ROOT:-$HOME/Documents/github/panel}"
+mkdir -p .cursor/rules
+ln -sfn "$PANEL_SKILL_ROOT/.cursor/rules/panel.mdc" .cursor/rules/panel.mdc
+```
+
+Use Cursor Project Rules instead of the legacy `.cursorrules` file. The rule
+points Cursor to the adapter workflow in
+[`references/cursor.md`](references/cursor.md). Restart Cursor or reload the
+window if the rule does not appear in the Agent sidebar.
+
+### Development
+
+Requires Node ≥18 (for `node:test` / `node:vm`, used only by the test suite).
+The Claude Code harness has no install-time build step, but if you edit `lib.js`
+or `panel.template.js`, regenerate it:
 
 ```bash
 node build-panel.js && node --test
 ```
+
+`panel-preflight.js` is the shared adapter helper for non-Workflow platforms. It
+wraps the same mode, redirect, PII, and cost gates used by the Claude harness.
 
 ### Optional: auto-trigger on new specs/plans
 
@@ -171,7 +225,7 @@ silently spending tokens.
 
 ## Usage
 
-Three ways to invoke — all resolve mode and target the same way:
+Claude Code has three ways to invoke — all resolve mode and target the same way:
 
 1. **Command:** `/panel review: path/to/spec.md` · `/panel council: <question>` ·
    `/panel thorough review: path/to/plan.md`
@@ -179,6 +233,24 @@ Three ways to invoke — all resolve mode and target the same way:
    "get expert eyes on this", "run a thorough panel" — works mid-conversation, including as an
    answer to a question.
 3. **Auto-trigger hook** (opt-in, see above).
+
+Codex uses natural-language skill triggering after installation:
+
+- "Run the panel review on `docs/spec.md`"
+- "Convene a panel on whether we should adopt event sourcing given these constraints..."
+- "Run a thorough panel on this plan"
+
+The Codex adapter follows [`references/codex.md`](references/codex.md) instead
+of the Claude Code `/panel` command.
+
+Cursor uses the project rule after `.cursor/rules/panel.mdc` is installed:
+
+- "Run the panel review on this PRD"
+- "Panel this implementation plan"
+- "Convene a thorough panel on whether this migration is worth doing"
+
+The Cursor adapter follows [`references/cursor.md`](references/cursor.md) and
+runs serially by default.
 
 ---
 
@@ -193,14 +265,16 @@ default**:
 | `light` (default) | ~6–8 | ~200K |
 | `thorough` | ~10–14 | several× light |
 
-Note: each subagent re-reads the target (Claude Code's `Workflow` doesn't expose cross-call
-prompt caching), so token cost scales with artifact size × lens count.
+Note: each lens pass re-reads the target across Claude Code, Codex, and Cursor,
+so token cost scales with artifact size × lens count.
 
 ---
 
 ## Error handling
 
-The harness returns structured error objects you may see surfaced by the `/panel` command:
+The Claude Code harness returns structured error objects you may see surfaced by
+the `/panel` command. Codex and Cursor apply the same gates and report
+equivalent conditions in chat.
 
 | Return key | Meaning | What to do |
 | --- | --- | --- |

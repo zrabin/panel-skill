@@ -22,10 +22,22 @@ adversarially pressure-test, then synthesize. Diversity + verification are the
 levers (not persona detail).
 
 ## Running it
-The skill IS the `/panel` command. When invoked by name or natural language, run
-`/panel` against the artifact or question under discussion (resolve the target from
-the conversation; ask if ambiguous). The command handles mode detection, the
-decline + PII gates, the cost guard, and the Workflow invocation.
+Use the adapter for the current agent platform:
+
+- **Claude Code:** the skill IS the `/panel` command. When invoked by name or
+  natural language, run `/panel` against the artifact or question under
+  discussion. The command handles mode detection, decline + PII gates, the cost
+  guard, and the Workflow invocation.
+- **Codex:** do not call the Claude Code `Workflow` harness. Read
+  `references/codex.md` and run the native Codex orchestration there. Use
+  Codex subagents when the multi-agent tools are available and policy allows it;
+  otherwise use the serial fallback.
+- **Cursor:** use the project rule adapter in `.cursor/rules/panel.mdc`.
+  Read `references/cursor.md` and run the native Cursor orchestration there.
+  Cursor runs the lenses serially unless the active Cursor environment provides
+  an explicit parallel-agent mechanism.
+
+Resolve the target from the conversation; ask if ambiguous.
 
 ## Depth: light (default) vs thorough
 Default runs are **light** — diverse lenses → one batched verification pass → synthesis

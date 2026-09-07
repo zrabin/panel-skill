@@ -156,7 +156,7 @@ const SELECT_SCHEMA = { type: 'object', additionalProperties: false, required: [
 phase('Convene')
 const selection = await agent(
   `${TARGET_BLOCK}\n\nYou are the PANEL CONVENER. Choose the MINIMUM set of genuinely DISTINCT critique lenses (diversity is the lever; 3 is fine, never exceed ${LENS_CAP}). Draw from the library; invent at most 1–2 ad-hoc niche lenses ONLY if the topic needs expertise the library lacks (source="adhoc", give a one-line mandate). Never pick two lenses that surface the same class of issue.\n\nLIBRARY:\n${LIBRARY_DIGEST}\n\nReturn the chosen lenses (each with the distinct dimension it covers) + a one-line rationale.`,
-  { label: 'convene', phase: 'Convene', schema: SELECT_SCHEMA }
+  { model: 'sonnet', label: 'convene', phase: 'Convene', schema: SELECT_SCHEMA }
 ).catch(() => null)
 if (!selection || !selection.lenses) return { error: 'convene_failed', message: 'panel: lens selection failed.' }
 
@@ -191,7 +191,7 @@ const independent = (await parallel(selected.map(l => () => {
   const p = MODE === 'review'
     ? `${TARGET_BLOCK}\n\n${lensMandate(l)}\n\n${SEVERITY}\n\nReview through YOUR lens ONLY. Return 2–6 concrete findings, each anchored to a section with a near-verbatim suggested edit. Set lens to "${l.key}".`
     : `${TARGET_BLOCK}\n\n${lensMandate(l)}\n\nDeliberate through YOUR lens ONLY. Give a recommendation + confidence, and 2–4 FALSIFIABLE claims, each with a disconfirming test. Set lens to "${l.key}".`
-  return agent(p, { label: `lens:${l.key}`, phase: 'Independent', schema: MODE === 'review' ? FINDINGS_SCHEMA : POSITION_SCHEMA }).catch(() => null)
+  return agent(p, { model: 'opus', label: `lens:${l.key}`, phase: 'Independent', schema: MODE === 'review' ? FINDINGS_SCHEMA : POSITION_SCHEMA }).catch(() => null)
 }))).filter(Boolean)
 const ranLenses = independent.length
 if (ranLenses < 2) return { error: 'degraded', ran: ranLenses, requested: selected.length, message: `panel: only ${ranLenses} lens(es) returned; aborting.` }
@@ -216,7 +216,7 @@ async function verifyBatch(findings, label) {
   const list = findings.map(f => `[id ${f.id}] (lens ${f.lens}) TITLE: ${f.title || ''} | SECTION: ${f.section || ''} | ISSUE: ${f.issue || ''} | CLAIMED: ${f.severity || ''} | FIX: ${f.recommendation || ''}`).join('\n')
   const res = await agent(
     `${TARGET_BLOCK}\n\nADVERSARIALLY VERIFY each finding below. For EACH: first TRY TO REFUTE it (wrong? already handled in the artifact? a misreading?), then RE-RATE its severity honestly (use "drop" if it should not be reported; verdict "reframe" if real but mis-stated, and improve the recommendation). Return exactly one verdict per id. ${SEVERITY}\n\nFINDINGS:\n${list}`,
-    { label, phase: 'Pressure-test', schema: BATCH_VERDICT_SCHEMA }
+    { model: 'sonnet', label, phase: 'Pressure-test', schema: BATCH_VERDICT_SCHEMA }
   ).catch(() => null)
   const byId = {}
   ;((res && res.verdicts) || []).forEach(v => { if (v && v.id) byId[v.id] = v })
@@ -243,7 +243,7 @@ if (MODE === 'review') {
 } else if (THOROUGH) {
   councilPositions = (await parallel(independent.map(p => () =>
     agent(`The question: ${QUESTION}\n\nYour position (lens ${p.lens}): ${p.recommendation} (confidence ${p.confidence}).\nClaims + disconfirming tests:\n${(p.claims || []).map((c, i) => `${i + 1}. CLAIM: ${c.claim}\n   TEST: ${c.disconfirming_test}`).join('\n')}\n\nMentally run each disconfirming test against what you know (you are NOT executing code). Report whether your recommendation SURVIVES, what the tests showed, and your (possibly revised) recommendation + confidence. Be honest if a test undercuts you.`,
-      { label: `pressure:${p.lens}`, phase: 'Pressure-test', schema: COUNCIL_POSITION_SCHEMA }
+      { model: 'sonnet', label: `pressure:${p.lens}`, phase: 'Pressure-test', schema: COUNCIL_POSITION_SCHEMA }
     ).catch(() => null)))).filter(Boolean)
   log(`Pressure-test (thorough): ${councilPositions.length} positions stress-tested`)
 } else {
@@ -263,7 +263,7 @@ let loopbackNote = ''
 if (THOROUGH) {
   const completeness = await agent(
     `${TARGET_BLOCK}\n\nThe panel produced:\n${digest || '(nothing)'}\n\nYou are the COMPLETENESS CRITIC. What did every lens collectively MISS? Return 1–4 net-new findings only. ${SEVERITY}`,
-    { label: 'completeness', phase: 'Synthesize', schema: FINDINGS_SCHEMA }
+    { model: 'opus', label: 'completeness', phase: 'Synthesize', schema: FINDINGS_SCHEMA }
   ).catch(() => null)
   completenessFindings = (completeness && completeness.findings) || []
 
@@ -277,7 +277,7 @@ if (THOROUGH) {
       stance
         ? `${TARGET_BLOCK}\n\n${lensMandate({ key: stance, source: 'library', why: 'the panel agreed too easily; bring a genuinely different angle' })}\n\nThe rest of the panel found little to disagree on. Surface the strongest real concern they missed. ${MODE === 'review' ? SEVERITY : ''}`
         : `${TARGET_BLOCK}\n\nThe panel reached consensus. Name the strongest SHARED UNQUESTIONED ASSUMPTION beneath it and what happens if it is false.`,
-      { label: stance ? `loopback:${stance}` : 'loopback:assumption', phase: 'Synthesize',
+      { model: 'sonnet', label: stance ? `loopback:${stance}` : 'loopback:assumption', phase: 'Synthesize',
         schema: (stance && MODE === 'review') ? FINDINGS_SCHEMA : { type: 'object', additionalProperties: false, required: ['result'], properties: { result: { type: 'string' } } } }
     ).catch(() => null)
     if (stance && MODE === 'review' && probe && probe.findings) { completenessFindings.push(...probe.findings); loopbackNote = `loop-back ran ${stance}; +${probe.findings.length} finding(s).` }
@@ -296,7 +296,7 @@ const report = await agent(
   MODE === 'review'
     ? `SYNTHESIZER for a panel review of "${TITLE}". Markdown report: 1) Verdict line. 2) Blockers (issue + concrete edit; merge dupes). 3) Majors. 4) Minors/nits. 5) Themes (2–3 sentences). 6) Diversity note (one line; loop-back: "${loopbackNote || 'none'}").${degraded ? ` 7) NOTE: degraded — ${ranLenses}/${selected.length} lenses.` : ''}\n\nVERIFIED:\n${synthInput || '(none)'}\n\nCOMPLETENESS/LOOPBACK:\n${compInput || '(none)'}\n\nNo padding. This is the edit plan.`
     : `SYNTHESIZER for a council on:\n${QUESTION}\n\nMarkdown report: 1) Recommendation + confidence. 2) Key tradeoffs. 3) Dissent / minority report (never smooth over disagreement). 4) Diversity note (loop-back: "${loopbackNote || 'none'}").${degraded ? ` 5) NOTE: degraded — ${ranLenses}/${selected.length}.` : ''}\n\nPOSITIONS:\n${synthInput}\n\nADDITIONAL:\n${compInput || '(none)'}`,
-  { label: 'synthesize', phase: 'Synthesize' }
+  { model: 'opus', label: 'synthesize', phase: 'Synthesize' }
 ).catch(() => null)
 
 const base = {
